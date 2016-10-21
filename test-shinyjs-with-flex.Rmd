@@ -1,0 +1,128 @@
+---
+title: "test-shinyjs-disable-with-flex"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r setup, include=T}
+library(flexdashboard)
+library(shiny)
+library(shinyjs)
+
+```
+
+```{r packagesRequired,include=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+
+#Load the data
+myData <- data.table(mtcars)
+myData <- myData[,make:=row.names(mtcars)]
+myData <- myData[,group:=rep(c("Group1","Group2"),nrow(mtcars)/2)]
+```
+
+<!-- Build out the actual widge, visulisation--> 
+Column {.sidebar data-width=250}
+=====================================
+
+Select from drop down menu. 
+
+```{r sideBar,eval=T}
+
+selectInput("chooseG1", label = "Group 1:",
+           c(as.character(unique(myData[group=="Group1",make]))))
+
+
+selectInput("chooseG2", label = "Group 2:",
+           c(as.character(unique(myData[group=="Group2",make]))))
+
+tags$span(style="color:red", h3(textOutput("text1")))
+
+
+```
+
+```{r watchInputs}
+  
+makeReactives <- reactiveValues(reactInd = 1)
+  observe({
+    input$chooseG1
+    makeReactives$reactInd <- 1
+  })
+  observe({
+    input$chooseG2
+    makeReactives$reactInd <- 2
+  })
+   
+  
+  mostRecent <- reactive({
+    
+    if(makeReactives$reactInd == 1){
+      return(input$chooseG1)
+    }
+    if(makeReactives$reactInd == 2){
+      return(input$chooseG2)
+    }
+    
+  })
+```
+
+```{r}
+filteredData <- reactive({
+    filtered <- myData %>% 
+      tbl_dt %>%
+      filter(make == mostRecent())
+    return(filtered)
+  })
+```
+
+
+Some Slides
+=======================================================================
+
+Row {data-height=350}
+-------------------------------------
+### Select "Group1 == "Hornet Sportabout"" to disable slider2
+
+```{r}
+currentwt <- reactive({filteredData() %>% summarise(wt)})
+
+renderUI({
+  sliderInput("slide1", label = "Value of wt:",
+            min = 1, max = 5, value = currentwt() , step = 0.5)
+})
+
+
+```
+
+Row {data-height=350}
+-------------------------------------
+### Slide 2
+
+```{r}
+
+currentqsec <- reactive({filteredData() %>% summarise(qsec)})
+
+tagList(useShinyjs(rmd=TRUE),renderUI(
+    sliderInput("slide2", label = "Current values of qsec:",
+            min = 16, max = 24, value = currentqsec() , step = 0.5)))
+
+
+
+
+
+```
+
+```{r,eval=T}
+
+observeEvent(mostRecent(),{
+  if(mostRecent() == "Hornet Sportabout"){
+      shinyjs:disable('slide2')
+    }
+    })
+
+```
+
+
