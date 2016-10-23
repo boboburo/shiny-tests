@@ -119,7 +119,7 @@ tagList(useShinyjs(rmd=TRUE),renderUI(
 
 observeEvent(mostRecent(),{
   if(mostRecent() == "Hornet Sportabout"){
-      shinyjs:disable('slide2')
+      shinyjs::disable('slide2')
     }
     })
 
